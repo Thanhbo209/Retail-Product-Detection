@@ -1,11 +1,1 @@
-milk
-water_bottle
-snack
-coffee
-tea
-juice
-instant_noodle
-canned_food
-box_product
-other_product
-
+product

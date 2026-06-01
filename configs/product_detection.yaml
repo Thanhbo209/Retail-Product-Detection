@@ -1,69 +1,9 @@
-path: ../data/yolo
+path: data/yolo
 train: images/train
 val: images/val
 test: images/test
-nc: 10
+
+nc: 1
+
 names:
-  0: milk
-  1: water_bottle
-  2: snack
-  3: coffee
-  4: tea
-  5: juice
-  6: instant_noodle
-  7: canned_food
-  8: box_product
-  9: other_product
-
-project:
-  name: retail_product_detection_dataset
-  task: object_detection
-  annotation_format: yolo
-  description: Retail product detection dataset for supermarket shelf and consumer product images.
-
-paths:
-  raw_data: data/raw
-  processed_data: data/processed
-  yolo_dataset: data/yolo
-  reports: outputs/reports
-  visualizations: outputs/visualizations
-
-dataset:
-  image_extensions:
-    - .jpg
-    - .jpeg
-    - .png
-    - .bmp
-    - .webp
-  splits:
-    train: data/yolo/images/train
-    val: data/yolo/images/val
-    test: data/yolo/images/test
-  labels:
-    train: data/yolo/labels/train
-    val: data/yolo/labels/val
-    test: data/yolo/labels/test
-
-classes:
-  - milk
-  - water_bottle
-  - snack
-  - coffee
-  - tea
-  - juice
-  - instant_noodle
-  - canned_food
-  - box_product
-  - other_product
-
-validation:
-  warn_empty_labels: true
-  min_box_width: 0.0
-  min_box_height: 0.0
-  report_dir: outputs/reports
-
-training_defaults:
-  model: yolov8n.pt
-  epochs: 50
-  image_size: 640
-  batch_size: 16
+  0: product

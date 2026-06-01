@@ -1,3 +1,20 @@
+path: ../data/yolo
+train: images/train
+val: images/val
+test: images/test
+nc: 10
+names:
+  0: milk
+  1: water_bottle
+  2: snack
+  3: coffee
+  4: tea
+  5: juice
+  6: instant_noodle
+  7: canned_food
+  8: box_product
+  9: other_product
+
 project:
   name: retail_product_detection_dataset
   task: object_detection
@@ -50,4 +67,3 @@ training_defaults:
   epochs: 50
   image_size: 640
   batch_size: 16
-

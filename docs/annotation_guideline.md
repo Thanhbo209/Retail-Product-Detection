@@ -1,79 +1,97 @@
 # Annotation Guideline
 
-This document defines how to label retail products for object detection. The goal is consistency. A smaller but clean dataset is better than a larger dataset with unclear labels.
+This project uses one object class:
 
-## Labeling Tool
+```text
+product
+```
 
-Use one of these tools:
+The goal is to label visible retail product packages on shelf images for object detection. This is not product category classification, SKU recognition, brand recognition, or price recognition.
 
-- CVAT
-- Roboflow
-- Label Studio
+## Class Definition
 
-Export annotations in YOLO format.
-
-## Classes
-
-Use the class list in `configs/classes.txt`.
-
-| Class | Use When |
+| Class | Definition |
 | --- | --- |
-| milk | Milk cartons, bottles, cans, or milk drink packaging |
-| water_bottle | Plain bottled water products |
-| snack | Chips, biscuits, candy, crackers, and similar snack products |
-| coffee | Coffee bags, jars, cans, sachets, and ready-to-drink coffee |
-| tea | Tea boxes, bottles, bags, sachets, and ready-to-drink tea |
-| juice | Juice cartons, bottles, cans, and boxes |
-| instant_noodle | Cup noodles, packet noodles, and instant ramen products |
-| canned_food | Food products sold in cans |
-| box_product | Boxed products that do not fit the more specific classes |
-| other_product | Clearly visible retail products that do not fit another class |
+| product | A visible retail product package that a shopper could reasonably identify as a product unit or package on the shelf |
+
+Examples include boxes, bottles, cans, cartons, cups, packets, bags, jars, and other packaged retail goods.
+
+## Do Not Label
+
+- empty shelf gaps
+- shelf background
+- price tags
+- shelf rails
+- posters or printed shelf graphics
+- reflections
+- hands, carts, baskets, or people
+- tiny uncertain fragments that cannot be confidently localized
+- product-like shapes that are not actual visible product packages
 
 ## Bounding Box Rules
 
+- Use one bounding box per visible product package.
 - Draw the box tightly around the visible product.
-- Include the full visible product packaging, not the shelf space around it.
-- Do not include neighboring products in the same box.
-- Use one box per product instance.
-- For multipacks, label the visible selling unit. If the multipack is sold as one package, draw one box around the pack.
+- Do not include empty shelf space around the product.
+- Do not merge multiple products into one box.
+- Do not split one product into multiple boxes.
+- If a product is partially hidden, label only the visible region if the product is still recognizable.
+- Skip heavily occluded, tiny, or blurry fragments when the product boundary is uncertain.
 
-## Occluded Products
+## Crowded Shelves
 
-- Label a product if enough of it is visible to identify the class.
-- Draw the box around only the visible part if the full product boundary is hidden.
-- Do not guess hidden boundaries.
-- Skip products that are too occluded to classify reliably.
+Crowded shelves are expected. Label each visible product instance separately when its boundary is clear enough.
 
-## Blurry Products
+If many products overlap:
 
-- Label blurry products only if the class is still reasonably clear.
-- Use `other_product` only when the item is clearly a product but the exact target class is not reliable.
-- Skip products that are too blurry to localize or classify.
+- label the visible part of each recognizable product
+- avoid guessing hidden boundaries
+- skip fragments that cannot be separated from neighbors
 
-## Ambiguous Products
+## Hard Examples
 
-- Prefer the most specific class when the product type is clear.
-- Use `box_product` for boxed products that do not belong to milk, juice, tea, coffee, instant noodles, snacks, canned food, or water.
-- Use `other_product` for visible products outside the defined taxonomy.
-- Do not use `other_product` for difficult examples that should belong to a known class.
+Hard examples are images where labels or predictions are likely to be wrong. Common hard cases include:
 
-## Common Mistakes To Avoid
+- empty shelf gaps detected as products
+- duplicate boxes on the same product
+- boxes that include neighboring products
+- missed products on lower shelves
+- small products in dense rows
+- blurry or reflective packaging
 
-- Drawing boxes too loose around the product.
-- Drawing boxes too tight and cutting off packaging.
-- Labeling shelf price tags as products.
-- Combining multiple products into one box.
-- Using inconsistent classes for the same product type.
-- Overusing `other_product`.
-- Labeling reflections, posters, or background graphics as products.
+Hard examples should be reviewed in CVAT before being accepted into `data/processed/labels`.
+
+## Prediction Review Rule
+
+Model predictions are not ground truth.
+
+Prediction labels should be treated as pre-labels only:
+
+```text
+review_batches/<batch>/labels_initial
+```
+
+After human review in CVAT, corrected labels should be saved as:
+
+```text
+review_batches/<batch>/labels_fixed
+```
+
+Only fixed labels should be accepted into:
+
+```text
+data/processed/labels
+```
 
 ## Quality Checklist
 
-Before exporting annotations:
+Before training:
 
-- every visible target product has one box
-- each box is tight and aligned with the visible product
-- class names are consistent
-- tiny, unreadable, or heavily occluded products are skipped
-- no price tags, shelf labels, hands, or background objects are labeled
+- no boxes on empty shelf gaps
+- no boxes on price tags or shelf rails
+- one product has one box
+- boxes are tight and do not include neighboring products
+- obvious visible products are not missed
+- uncertain tiny fragments are skipped
+- hard examples have been reviewed in CVAT
 

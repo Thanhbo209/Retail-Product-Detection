@@ -41,6 +41,8 @@ outputs/reports/
 outputs/visualizations/
 outputs/inference/
 runs/
+cvat_import_*/
+review_batches/
 
 # Model artifacts
 *.pt

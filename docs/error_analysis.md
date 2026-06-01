@@ -1,8 +1,41 @@
 # Error Analysis Workflow
 
-Use this document after model evaluation or inference. The goal is to turn model mistakes into concrete dataset and labeling improvements.
+Error analysis connects model mistakes to label fixes and dataset improvements.
 
-## Review Metadata
+## Key Rule
+
+Prediction is not ground truth.
+
+Predictions can be used as pre-labels for review, but they must stay in:
+
+```text
+review_batches/<batch>/labels_initial
+```
+
+Human-corrected labels belong in:
+
+```text
+review_batches/<batch>/labels_fixed
+```
+
+Only reviewed fixed labels should be accepted into:
+
+```text
+data/processed/labels
+```
+
+## Error Taxonomy
+
+| Error Type | Meaning | Typical Action |
+| --- | --- | --- |
+| false_positive | Model labels empty shelf, background, price tag, or non-product as product | Delete the box |
+| missed_detection | Visible product has no predicted box | Add a product box |
+| bad_box | Box is too loose, too tight, shifted, or includes neighbors | Adjust the box |
+| duplicate_detection | Same product has multiple boxes | Keep one correct box |
+| annotation_noise | Accepted ground-truth label is wrong or uncertain | Fix source label and retrain |
+| low_confidence | Correct detection exists but confidence is weak | Add more similar examples or improve labels |
+
+## Review Metadata Template
 
 - dataset version:
 - model version:
@@ -13,118 +46,7 @@ Use this document after model evaluation or inference. The goal is to turn model
 - prediction JSON:
 - confidence threshold:
 
-## Error Types
-
-Use one of these values in `outputs/reports/error_analysis_template.csv`.
-
-| Error Type | Meaning |
-| --- | --- |
-| missed_detection | A real product is visible but the model did not detect it |
-| wrong_class | The model detected the product but assigned the wrong class |
-| bad_box | The class is correct but the bounding box is too loose, too tight, or shifted |
-| duplicate_detection | The same product instance was detected more than once |
-| false_positive | The model detected something that is not a target product |
-| low_confidence | The prediction is correct but confidence is too low |
-
-## Summary Of Common Errors
-
-Fill this section after reviewing predictions.
-
-| Error Type | Count | Most Affected Classes | Notes |
-| --- | ---: | --- | --- |
-| missed_detection | TBD | TBD | TBD |
-| wrong_class | TBD | TBD | TBD |
-| bad_box | TBD | TBD | TBD |
-| duplicate_detection | TBD | TBD | TBD |
-| false_positive | TBD | TBD | TBD |
-| low_confidence | TBD | TBD | TBD |
-
-## Missed Detection Examples
-
-| Image | True Class | Description | Possible Cause | Suggested Fix |
-| --- | --- | --- | --- | --- |
-| TBD | TBD | Product was visible but not detected | Too few examples, small object, occlusion, blur | Add more examples and check labels |
-
-## Wrong Class Examples
-
-| Image | Predicted Class | True Class | Confidence | Possible Cause | Suggested Fix |
-| --- | --- | --- | ---: | --- | --- |
-| TBD | TBD | TBD | TBD | Similar packaging or unclear class rule | Improve class guideline and add more examples |
-
-## False Positive Examples
-
-| Image | Predicted Class | Confidence | Description | Possible Cause | Suggested Fix |
-| --- | --- | ---: | --- | --- | --- |
-| TBD | TBD | TBD | Shelf tag, background object, reflection, or poster detected | Background looks similar to product packaging | Add negative examples or fix labels |
-
-## Duplicate Detection Examples
-
-| Image | Class | Description | Possible Cause | Suggested Fix |
-| --- | --- | --- | --- | --- |
-| TBD | TBD | Same product detected multiple times | Overlapping boxes or low NMS effect | Review labels and tune inference settings |
-
-## Bad Box Examples
-
-| Image | Class | Description | Possible Cause | Suggested Fix |
-| --- | --- | --- | --- | --- |
-| TBD | TBD | Box cuts off the product or includes nearby products | Inconsistent training labels | Fix annotations and retrain |
-
-## Low Confidence Examples
-
-| Image | Class | Confidence | Description | Possible Cause | Suggested Fix |
-| --- | --- | ---: | --- | --- | --- |
-| TBD | TBD | TBD | Correct detection but weak confidence | Underrepresented class or hard lighting | Add more similar examples |
-
-## Possible Causes
-
-Common causes to check:
-
-- class imbalance
-- inconsistent box tightness
-- overuse of `other_product`
-- too few examples for one class
-- small products on crowded shelves
-- blurry images
-- strong glare or poor lighting
-- occluded packaging
-- ambiguous class definitions
-- train/val/test leakage or poor split distribution
-- incorrect ground-truth labels
-
-## Suggested Fixes
-
-Choose fixes that match the observed mistake:
-
-- correct bad labels
-- add more examples for weak classes
-- add more crowded shelf images
-- collect examples with blur, glare, and occlusion
-- simplify confusing class definitions
-- reduce overuse of `other_product`
-- inspect tiny boxes and duplicate labels
-- retrain with a clean dataset version
-- compare YOLOv8n and YOLOv8s after labels are clean
-
-## Next Labeling Improvements
-
-Before the next training run:
-
-- review the top 20 missed detections
-- review the top 20 false positives
-- review all wrong-class predictions for confusing classes
-- update `docs/annotation_guideline.md` if class rules are unclear
-- fix annotation mistakes in the labeling tool
-- export a new dataset version
-- run dataset validation again
-- retrain and compare metrics
-
-## CSV Columns
-
-The error analysis CSV uses:
-
-```text
-image_filename,error_type,predicted_class,true_class,confidence,description,possible_cause,suggested_fix,reviewed_by,review_date
-```
+## Error Analysis CSV
 
 Generate the template with:
 
@@ -132,9 +54,75 @@ Generate the template with:
 python scripts/create_error_analysis_template.py
 ```
 
-To prefill rows from inference JSON:
+Optional prefill from inference JSON:
 
 ```bash
 python scripts/create_error_analysis_template.py --predictions outputs/inference/predictions.json --overwrite
+```
+
+CSV columns:
+
+```text
+image_filename,error_type,predicted_class,true_class,confidence,description,possible_cause,suggested_fix,reviewed_by,review_date
+```
+
+## Label Fix Log
+
+Use the generated template:
+
+```text
+outputs/reports/label_fix_log_template.csv
+```
+
+Columns:
+
+```text
+image_filename,issue_type,source,action_taken,before_label_count,after_label_count,review_status,reviewed_by,review_date,notes
+```
+
+## Common Causes
+
+- empty shelf gaps were labeled or predicted as products
+- boxes include shelf background or neighboring products
+- small products are difficult to separate
+- converted labels contain annotation noise
+- hard examples were not forced into train
+- confidence threshold is too low for demo use
+- confidence threshold is too high for error discovery
+
+## Suggested Fixes
+
+- Review suspicious images in CVAT.
+- Delete false positives.
+- Add missed product boxes.
+- Tighten or resize bad boxes.
+- Remove duplicate boxes.
+- Accept only fixed labels into processed data.
+- Re-run validation and visualization before training.
+
+## Review Commands
+
+Create a review batch:
+
+```bash
+python scripts/create_review_batch.py --batch-name review_batch_001 --images data/processed/images/046.jpg --output review_batches
+```
+
+Convert predictions to pre-labels:
+
+```bash
+python scripts/convert_predictions_json_to_yolo.py --predictions outputs/inference_046/predictions.json --images data/processed/images --output-labels review_batches/review_batch_001/labels_initial --min-conf 0.25
+```
+
+Package for CVAT:
+
+```bash
+python scripts/package_cvat_yolo_import.py --images review_batches/review_batch_001/images --labels review_batches/review_batch_001/labels_initial --output-zip review_batches/review_batch_001/cvat_import_flat.zip --layout flat --class-name product
+```
+
+Accept fixed labels:
+
+```bash
+python scripts/accept_fixed_labels.py --batch review_batches/review_batch_001 --processed-images data/processed/images --processed-labels data/processed/labels
 ```
 

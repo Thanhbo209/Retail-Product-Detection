@@ -39,6 +39,7 @@ data/yolo/labels/
 # Generated outputs
 outputs/reports/
 outputs/visualizations/
+outputs/inference/
 runs/
 
 # Model artifacts
@@ -51,4 +52,3 @@ runs/
 
 # Logs
 *.log
-
